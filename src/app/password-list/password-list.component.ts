@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { PasswordManagerService } from '../services/password-manager.service';
 import { Observable } from 'rxjs';
+import { AES, enc } from 'crypto-js';
 
 @Component({
   selector: 'app-password-list',
@@ -15,7 +16,7 @@ export class PasswordListComponent {
   siteUrl!: string;
   siteImgUrl!: string;
 
-  passwordList!: Observable<Array<any>>;
+  passwordList!: Array<any>;
 
   email!: string;
   username!: string;
@@ -35,7 +36,9 @@ export class PasswordListComponent {
     this.loadPasswords();
   }
 
-  onSubmit(values: object) {
+  onSubmit(values: any) {
+    const encryptedPassword = this.encryptPassword(values.password);
+    values.password = encryptedPassword;
     if (this.formState === "Add New") {
       this.passowrdService.addPassword(values, this.siteId)
       .then(() => {
@@ -58,7 +61,9 @@ export class PasswordListComponent {
   }
 
   loadPasswords() {
-    this.passwordList = this.passowrdService.loadPasswords(this.siteId)
+    this.passowrdService.loadPasswords(this.siteId).subscribe((res) => {
+      this.passwordList = res;
+    })
   }
 
   editPassword(email: string, username: string, password: string, passwordId: string) {
@@ -76,5 +81,22 @@ export class PasswordListComponent {
     this.password = '';
     this.passowrdId = '';
     this.formState = "Add New";
+  }
+
+  encryptPassword(password: string) {
+    const secretKey = 'p4YL+gt/OPO3L2PJYuIt6TUEHw+qP6NX0FfM15xdJJCkBibEweHahdS9XbwL3DmI';
+    const encryptedPassword = AES.encrypt(password, secretKey).toString();
+    return encryptedPassword;
+  }
+
+  decrypt(password: string) {
+    const secretKey = 'p4YL+gt/OPO3L2PJYuIt6TUEHw+qP6NX0FfM15xdJJCkBibEweHahdS9XbwL3DmI';
+    const decPassword = AES.decrypt(password, secretKey).toString(enc.Utf8)
+    return decPassword;
+  }
+
+  onDecrypt(password: string, index: number) {
+    const decryptedPassword = this.decrypt(password);
+    this.passwordList[index].password = decryptedPassword;
   }
 }
